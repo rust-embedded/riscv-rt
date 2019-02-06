@@ -1,0 +1,17 @@
+[package]
+authors = [
+    # "The RISCV Team <riscv@teams.rust-embedded.org>", # uncomment when mailing list is up
+    "Jorge Aparicio <jorge@japaric.io>",
+]
+name = "riscv-rt-macros"
+version = "0.1.0"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+quote = "0.6.11"
+
+[dependencies.syn]
+features = ["extra-traits", "full"]
+version = "0.15.26"

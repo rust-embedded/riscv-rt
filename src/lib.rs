@@ -97,9 +97,9 @@
 //! Disassembly of section .text:
 //!
 //! 20000000 <_start>:
-//! 20000000:	800011b7          	lui	gp,0x80001
-//! 20000004:	80018193          	addi	gp,gp,-2048 # 80000800 <_stack_start+0xffffc800>
-//! 20000008:	80004137          	lui	sp,0x80004
+//! 20000000:	800011b7            lui	gp,0x80001
+//! 20000004:	80018193            addi	gp,gp,-2048 # 80000800 <_stack_start+0xffffc800>
+//! 20000008:	80004137            lui	sp,0x80004
 //! ```
 //!
 //! # Symbol interfaces
@@ -187,9 +187,12 @@
 #![deny(warnings)]
 
 extern crate riscv;
+extern crate riscv_rt_macros;
 extern crate r0;
 
 use riscv::register::{mstatus, mtvec};
+
+pub use riscv_rt_macros::entry as entry2;
 
 extern "C" {
     // Boundaries of the .bss section
