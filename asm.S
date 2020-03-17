@@ -126,7 +126,8 @@ _abs_start:
     restores caller saved registers and then returns.
 */
 .section .trap, "ax"
-.global _start_trap
+/* By using weak, upstream IP cores may override with their own trap entry methods */
+.weak _start_trap 
 
 _start_trap:
     addi sp, sp, -16*REGBYTES
