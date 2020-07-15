@@ -43,6 +43,7 @@ SECTIONS
 
   .rodata : ALIGN(4)
   {
+    *(.srodata .srodata.*);
     *(.rodata .rodata.*);
 
     /* 4-byte align the end (VMA) of this section.
