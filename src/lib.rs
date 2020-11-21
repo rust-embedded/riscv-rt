@@ -336,7 +336,7 @@ extern crate riscv_rt_macros as macros;
 
 pub use macros::{entry, pre_init};
 
-use riscv::register::mcause;
+use riscv::register::{mcause, mtvec};
 
 #[export_name = "error: riscv-rt appears more than once in the dependency graph"]
 #[doc(hidden)]
@@ -546,5 +546,17 @@ pub extern "Rust" fn default_mp_hook() -> bool {
         _ => loop {
             unsafe { riscv::asm::wfi() }
         },
+    }
+}
+
+#[doc(hidden)]
+#[no_mangle]
+pub fn default_setup_interrupts() {
+    extern "C" {
+        fn _start_trap();
+    }
+
+    unsafe {
+        mtvec::write(_start_trap as usize, mtvec::TrapMode::Direct);
     }
 }
