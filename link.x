@@ -49,8 +49,8 @@ SECTIONS
     KEEP(*(.init));
     KEEP(*(.init.rust));
     . = ALIGN(4);
-    (*(.trap));
-    (*(.trap.rust));
+    *(.trap);
+    *(.trap.rust);
 
     *(.text .text.*);
   } > REGION_TEXT
