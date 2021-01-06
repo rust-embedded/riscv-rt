@@ -19,6 +19,6 @@ if [ -n "${CHECK_BLOBS:-}" ]; then
     ./check-blobs.sh
 fi
 
-if [ -n "${RUSTFMT:-}" ]; then
+if [ -n "${CHECK_RUSTFMT:-}" ]; then
     cargo fmt -- --check
 fi
