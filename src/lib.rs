@@ -378,7 +378,7 @@ pub unsafe extern "C" fn start_rust() -> ! {
     if _mp_hook() {
         r0::zero_bss(&mut _sbss, &mut _ebss);
         r0::init_data(&mut _sdata, &mut _edata, &_sidata);
-        
+
         __pre_init();
     }
 
