@@ -46,8 +46,14 @@ _abs_start:
     .cfi_startproc
     .cfi_undefined ra
 
-    csrw mie, 0
-    csrw mip, 0
+    csrr t1, misa
+    srli t1, t1, 18
+    andi t1, t1, 1
+    beqz t1, 1f
+    csrwi mie, 0
+    csrwi mip, 0
+1:
+    csrwi mstatus, 0
 
     li  x1, 0
     li  x2, 0
