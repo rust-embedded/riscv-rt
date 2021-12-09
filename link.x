@@ -17,6 +17,13 @@ PROVIDE(MachineExternal = DefaultHandler);
 PROVIDE(DefaultHandler = DefaultInterruptHandler);
 PROVIDE(ExceptionHandler = DefaultExceptionHandler);
 
+/* A PAC/HAL defined routine that should initialize custom interrupt controller if needed.
+ * This will be the first thing to be called, and thus the implementation must not rely on
+ * any initialization to be done. Notably, it may not be written in Rust.
+ */
+PROVIDE(_setup_pre_init_interrupts = default_setup_pre_init_interrupts);
+PROVIDE(_start_trap_pre_init = abort);
+
 /* # Pre-initialization function */
 /* If the user overrides this using the `#[pre_init]` attribute or by creating a `__pre_init` function,
    then the function this points to will be called before the RAM is initialized. */

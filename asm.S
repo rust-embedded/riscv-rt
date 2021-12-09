@@ -21,6 +21,8 @@
 .global _start
 
 _start:
+    /* First of all, set up some preliminary trap handling, in case initialization goes wrong */
+    jal ra, _setup_pre_init_interrupts // Defaults to default_setup_pre_init_interrupts
     /* Jump to the absolute address defined by the linker script. */
     // for 32bit
     .if __riscv_xlen == 32
@@ -170,8 +172,15 @@ default_start_trap:
     mret
 
 .section .text
-.global default_setup_interrupts
 
+.global default_setup_pre_init_interrupts
+default_setup_pre_init_interrupts:
+    // Set trap handler
+    la t0, _start_trap_pre_init // This symbol by default resolves to `abort`
+    csrw mtvec, t0
+    ret
+
+.global default_setup_interrupts
 default_setup_interrupts:
     // Set trap handler
     la t0, _start_trap
