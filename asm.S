@@ -48,16 +48,20 @@ _abs_start:
     .cfi_startproc
     .cfi_undefined ra
 
-    la t0, boot_args
-    STORE a0, 0*REGBYTES(t0)
-    STORE a1, 1*REGBYTES(t0)
-    STORE a2, 2*REGBYTES(t0)
-    STORE a3, 3*REGBYTES(t0)
-    STORE a4, 4*REGBYTES(t0)
-    STORE a5, 5*REGBYTES(t0)
-    STORE a6, 6*REGBYTES(t0)
-    STORE a7, 7*REGBYTES(t0)
+    // Save boot arguments to RAM if on hartid 0
+    csrr t0, mhartid
+    bnez t0, 1f
+    la t1, boot_args
+    STORE a0, 0*REGBYTES(t1)
+    STORE a1, 1*REGBYTES(t1)
+    STORE a2, 2*REGBYTES(t1)
+    STORE a3, 3*REGBYTES(t1)
+    STORE a4, 4*REGBYTES(t1)
+    STORE a5, 5*REGBYTES(t1)
+    STORE a6, 6*REGBYTES(t1)
+    STORE a7, 7*REGBYTES(t1)
     fence rw, rw
+1:
 
     csrw mie, 0
     csrw mip, 0
