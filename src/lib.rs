@@ -396,8 +396,12 @@ pub unsafe extern "C" fn start_rust() -> ! {
 
 /// Returns the value an argument register had when this firmware was first booted.
 ///
-/// Some of these registers may have values passed by the previous boot stage:
-/// <https://doc.coreboot.org/arch/riscv/index.html#stage-handoff-protocol>
+/// The argument registers are `a0` to `a7`, indexed 0 to 7.
+/// This returns `None` for an out-of-bounds index.
+///
+/// Some of these registers may have had values passed by the previous boot stage:
+/// <https://doc.coreboot.org/arch/riscv/index.html#stage-handoff-protocol>.
+/// Otherwise, the returned `usize` value is undefined.
 pub fn boot_argument(index: usize) -> Option<usize> {
     unsafe { boot_args.get(index).copied() }
 }
