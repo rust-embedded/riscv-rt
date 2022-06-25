@@ -353,7 +353,12 @@ extern "C" {
 
     // Initial values of the .data section (stored in Flash)
     static _sidata: u32;
+
+    static boot_args: [usize; ARGUMENT_REGISTERS_COUNT];
 }
+
+/// a0 to a7
+const ARGUMENT_REGISTERS_COUNT: usize = 8;
 
 /// Rust entry point (_start_rust)
 ///
@@ -387,6 +392,14 @@ pub unsafe extern "C" fn start_rust() -> ! {
     _setup_interrupts();
 
     main();
+}
+
+/// Returns the value an argument register had when this firmware was first booted.
+///
+/// Some of these registers may have values passed by the previous boot stage:
+/// <https://doc.coreboot.org/arch/riscv/index.html#stage-handoff-protocol>
+pub fn boot_argument(index: usize) -> Option<usize> {
+    unsafe { boot_args.get(index).copied() }
 }
 
 /// Registers saved in trap handler

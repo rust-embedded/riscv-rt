@@ -1,8 +1,10 @@
 #if __riscv_xlen == 64
+# define XLEN_WORD .8byte
 # define STORE    sd
 # define LOAD     ld
 # define LOG_REGBYTES 3
 #else
+# define XLEN_WORD .4byte
 # define STORE    sw
 # define LOAD     lw
 # define LOG_REGBYTES 2
@@ -45,6 +47,17 @@ _start:
 _abs_start:
     .cfi_startproc
     .cfi_undefined ra
+
+    la t0, boot_args
+    STORE a0, 0*REGBYTES(t0)
+    STORE a1, 1*REGBYTES(t0)
+    STORE a2, 2*REGBYTES(t0)
+    STORE a3, 3*REGBYTES(t0)
+    STORE a4, 4*REGBYTES(t0)
+    STORE a5, 5*REGBYTES(t0)
+    STORE a6, 6*REGBYTES(t0)
+    STORE a7, 7*REGBYTES(t0)
+    fence rw, rw
 
     csrw mie, 0
     csrw mip, 0
@@ -116,6 +129,21 @@ _abs_start:
     jal zero, _start_rust
 
     .cfi_endproc
+
+/*
+    Space to save the value of argument registers at boot
+*/
+.section .data
+.global boot_args
+boot_args:
+    XLEN_WORD 0 // a0
+    XLEN_WORD 0 // a1
+    XLEN_WORD 0 // a2
+    XLEN_WORD 0 // a3
+    XLEN_WORD 0 // a4
+    XLEN_WORD 0 // a5
+    XLEN_WORD 0 // a6
+    XLEN_WORD 0 // a7
 
 /*
     Trap entry point (_start_trap)
