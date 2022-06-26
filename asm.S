@@ -1,10 +1,8 @@
 #if __riscv_xlen == 64
-# define XLEN_WORD .8byte
 # define STORE    sd
 # define LOAD     ld
 # define LOG_REGBYTES 3
 #else
-# define XLEN_WORD .4byte
 # define STORE    sw
 # define LOAD     lw
 # define LOG_REGBYTES 2
@@ -140,14 +138,8 @@ _abs_start:
 .section .data
 .global boot_args
 boot_args:
-    XLEN_WORD 0 // a0
-    XLEN_WORD 0 // a1
-    XLEN_WORD 0 // a2
-    XLEN_WORD 0 // a3
-    XLEN_WORD 0 // a4
-    XLEN_WORD 0 // a5
-    XLEN_WORD 0 // a6
-    XLEN_WORD 0 // a7
+#define ARGUMENT_REGISTER_COUNT 8 // a0 to a7
+.skip REGBYTES * ARGUMENT_REGISTER_COUNT
 
 /*
     Trap entry point (_start_trap)
