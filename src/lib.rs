@@ -330,12 +330,245 @@
 #![no_std]
 #![deny(missing_docs)]
 
+#[cfg(any(target_arch = "riscv32", target_arch = "riscv64"))]
+use core::arch::global_asm;
+
 use riscv::register::mcause;
 pub use riscv_rt_macros::{entry, pre_init};
 
-#[export_name = "error: riscv-rt appears more than once in the dependency graph"]
-#[doc(hidden)]
-pub static __ONCE__: () = ();
+/// Parse cfg attributes inside a global_asm call.
+#[cfg(any(target_arch = "riscv32", target_arch = "riscv64"))]
+macro_rules! cfg_global_asm {
+    {@inner, [$($x:tt)*], } => {
+        global_asm!{$($x)*}
+    };
+    (@inner, [$($x:tt)*], #[cfg($meta:meta)] $asm:literal, $($rest:tt)*) => {
+        #[cfg($meta)]
+        cfg_global_asm!{@inner, [$($x)* $asm,], $($rest)*}
+        #[cfg(not($meta))]
+        cfg_global_asm!{@inner, [$($x)*], $($rest)*}
+    };
+    {@inner, [$($x:tt)*], $asm:literal, $($rest:tt)*} => {
+        cfg_global_asm!{@inner, [$($x)* $asm,], $($rest)*}
+    };
+    {$($asms:tt)*} => {
+        cfg_global_asm!{@inner, [], $($asms)*}
+    };
+}
+
+// This reset vector is the initial entry point after a system reset.
+// It initializes DWARF call frame information, the stack pointer, the
+// frame pointer (needed for closures to work in start_rust) and the global
+// pointer. Then it calls _start_rust.
+#[cfg(any(target_arch = "riscv32", target_arch = "riscv64"))]
+cfg_global_asm! {
+    "
+.section .init, \"ax\"
+.global _start
+_start:",
+    // Some CPUs execute firmware from a different address. See
+    // https://github.com/rust-embedded/riscv-rt/pull/46#issuecomment-991859634
+    // for details.
+    // Jump to the absolute address defined by the linker script.
+    #[cfg(target_arch = "riscv32")]
+    "
+    lui ra, %hi(_abs_start)
+    jr %lo(_abs_start)(ra)
+    ",
+    #[cfg(target_arch = "riscv64")]
+    "
+.option push
+.option norelax // to prevent an unsupported R_RISCV_ALIGN relocation from being generated
+1:
+    auipc ra, %pcrel_hi(1f)
+    ld ra, %pcrel_lo(1b)(ra)
+    jr ra
+    .align  3
+1:
+    .8byte _abs_start
+.option pop
+    ",
+
+    // The following code is executed from the proper address.
+    "
+_abs_start:
+    .cfi_startproc
+    .cfi_undefined ra
+
+    csrw mie, 0
+    csrw mip, 0
+
+    li  x1, 0
+    li  x2, 0
+    li  x3, 0
+    li  x4, 0
+    li  x5, 0
+    li  x6, 0
+    li  x7, 0
+    li  x8, 0
+    li  x9, 0
+    // a0..a2 (x10..x12) skipped
+    li  x13,0
+    li  x14,0
+    li  x15,0
+    li  x16,0
+    li  x17,0
+    li  x18,0
+    li  x19,0
+    li  x20,0
+    li  x21,0
+    li  x22,0
+    li  x23,0
+    li  x24,0
+    li  x25,0
+    li  x26,0
+    li  x27,0
+    li  x28,0
+    li  x29,0
+    li  x30,0
+    li  x31,0
+
+    .option push
+    .option norelax
+    la gp, __global_pointer$
+    .option pop
+
+    // Check hart id
+    csrr t2, mhartid
+    lui t0, %hi(_max_hart_id)
+    add t0, t0, %lo(_max_hart_id)
+    bgtu t2, t0, abort
+
+    // Allocate stacks
+    la sp, _stack_start
+    lui t0, %hi(_hart_stack_size)
+    add t0, t0, %lo(_hart_stack_size)
+",
+    #[cfg(riscv_mul)]
+    "mul t0, t2, t0",
+    #[cfg(not(riscv_mul))]
+    "
+    beqz t2, 2f  // Jump if single-hart
+    mv t1, t2
+    mv t3, t0
+1:
+    add t0, t0, t3
+    addi t1, t1, -1
+    bnez t1, 1b
+2:
+    ",
+    "
+    sub sp, sp, t0
+
+    // Set frame pointer
+    add s0, sp, zero
+
+    jal zero, _start_rust
+
+    .cfi_endproc
+    ",
+}
+
+// Trap entry point (_start_trap)
+// Saves caller saved registers ra, t0..6, a0..7, calls _start_trap_rust,
+// restores caller saved registers and then returns.
+#[cfg(any(target_arch = "riscv32", target_arch = "riscv64"))]
+cfg_global_asm! {
+    "
+.section .trap, \"ax\"
+.global default_start_trap
+default_start_trap:",
+    // Save registers
+    #[cfg(target_arch = "riscv32")]
+    "addi sp, sp, -16*4
+    sw ra, 0*4(sp)
+    sw t0, 1*4(sp)
+    sw t1, 2*4(sp)
+    sw t2, 3*4(sp)
+    sw t3, 4*4(sp)
+    sw t4, 5*4(sp)
+    sw t5, 6*4(sp)
+    sw t6, 7*4(sp)
+    sw a0, 8*4(sp)
+    sw a1, 9*4(sp)
+    sw a2, 10*4(sp)
+    sw a3, 11*4(sp)
+    sw a4, 12*4(sp)
+    sw a5, 13*4(sp)
+    sw a6, 14*4(sp)
+    sw a7, 15*4(sp)",
+    #[cfg(target_arch = "riscv64")]
+    "addi sp, sp, -16*8
+    sd ra, 0*8(sp)
+    sd t0, 1*8(sp)
+    sd t1, 2*8(sp)
+    sd t2, 3*8(sp)
+    sd t3, 4*8(sp)
+    sd t4, 5*8(sp)
+    sd t5, 6*8(sp)
+    sd t6, 7*8(sp)
+    sd a0, 8*8(sp)
+    sd a1, 9*8(sp)
+    sd a2, 10*8(sp)
+    sd a3, 11*8(sp)
+    sd a4, 12*8(sp)
+    sd a5, 13*8(sp)
+    sd a6, 14*8(sp)
+    sd a7, 15*8(sp)",
+    // Call `_start_trap_rust`.
+    "add a0, sp, zero
+    jal ra, _start_trap_rust",
+    // Restore registers
+    #[cfg(target_arch = "riscv32")]
+    "lw ra, 0*4(sp)
+    lw t0, 1*4(sp)
+    lw t1, 2*4(sp)
+    lw t2, 3*4(sp)
+    lw t3, 4*4(sp)
+    lw t4, 5*4(sp)
+    lw t5, 6*4(sp)
+    lw t6, 7*4(sp)
+    lw a0, 8*4(sp)
+    lw a1, 9*4(sp)
+    lw a2, 10*4(sp)
+    lw a3, 11*4(sp)
+    lw a4, 12*4(sp)
+    lw a5, 13*4(sp)
+    lw a6, 14*4(sp)
+    lw a7, 15*4(sp)
+    addi sp, sp, 16*4",
+    #[cfg(target_arch = "riscv64")]
+    "ld ra, 0*8(sp)
+    ld t0, 1*8(sp)
+    ld t1, 2*8(sp)
+    ld t2, 3*8(sp)
+    ld t3, 4*8(sp)
+    ld t4, 5*8(sp)
+    ld t5, 6*8(sp)
+    ld t6, 7*8(sp)
+    ld a0, 8*8(sp)
+    ld a1, 9*8(sp)
+    ld a2, 10*8(sp)
+    ld a3, 11*8(sp)
+    ld a4, 12*8(sp)
+    ld a5, 13*8(sp)
+    ld a6, 14*8(sp)
+    ld a7, 15*8(sp)
+    addi sp, sp, 16*8",
+    // Return from interrupt.
+    "mret",
+}
+
+// Make sure there is an abort when linking
+#[cfg(any(target_arch = "riscv32", target_arch = "riscv64"))]
+global_asm! {
+    "
+.section .text.abort
+.globl abort
+abort:
+    j abort
+    "
+}
 
 extern "C" {
     // Boundaries of the .bss section
