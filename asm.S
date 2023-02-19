@@ -9,6 +9,51 @@
 #endif
 #define REGBYTES (1 << LOG_REGBYTES)
 
+#define HPM_BOOTHEADER_TAG 0xbf
+
+# /* following symbols exported from linker script */
+.extern __app_load_addr__
+.extern __app_offset__
+.extern __fw_size__
+
+/*
+  XPI NOR Configuration Option
+*/
+.section .nor_cfg_option, "a"
+__nor_cfg__:
+    .4byte 0xfcf90001
+    .4byte 0x00000007
+    .4byte 0
+    .4byte 0
+
+/*
+    FW Container Header
+*/
+.section .boot_header, "a"
+header:
+    .byte HPM_BOOTHEADER_TAG // tag, must be '0xbf'
+    .byte 0x10               // header version
+    .2byte 0x90              // header length
+    .4byte 0                 // flags
+    .2byte 0                 // sw version
+    .byte 0                  // fuse version
+    .byte 1                  // number of firmware
+    .2byte 0                 // Device Config Block offset
+    .2byte 0                 // Signature Block offset
+
+/*
+    FW Info Table
+*/
+fw_info:
+    .4byte __app_offset__     // offset to boot_header start
+    .4byte __fw_size__        // firmware size
+    .4byte 0                  // firmware flags
+    .4byte 0                  // reserved
+    .4byte __app_load_addr__  // app load address
+    .4byte 0                  // reserved
+    .4byte _start             // application entry point
+    .zero 64 + 32           // hash value and initial vector
+
 /*
     Entry point of all programs (_start).
 
