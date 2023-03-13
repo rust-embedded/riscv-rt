@@ -595,3 +595,47 @@ pub unsafe extern "Rust" fn default_setup_interrupts() {
 
     xtvec::write(_start_trap as usize, xTrapMode::Direct);
 }
+
+/// Macro for defining a vectored implementation of an interrupt callback.
+/// The macro accepts one pattern with three parameters:
+/// - `INTERRUPT`: interrupt callback function to be defined.
+/// Usually, it is set to `MachineExternal`. However, we left this parameter
+/// open so you can easily implement vectored callbacks for other interrupt types.
+/// - `CLAIM`: function to claim/deduce the interrupt source number.
+/// Its signature must be `fn() -> u16`.
+/// - `EXTI_TABLE`: path to the table of external interrupt callbacks.
+/// This must be a static array of callbacks for the different interrupt sources.
+/// Its signature must be `static [unsafe extern "C" fn(); N_EXTIS]`, where 
+/// `N_EXTIS` correspond to the number of different interrupt sources of the target.
+/// Note that interrupt number 0 is reserved for "no interrupt". Thus, the callback
+/// for interrupt number `i` must be in the `i - 1` index of the array.
+/// - `COMPLETE`: function to mark a pending interrupt as complete.
+/// Its signature must be `fn(u16)`.
+#[macro_export]
+macro_rules! vectored_interrupt {
+    ($INTERRUPT: ident, $CLAIM: expr, $EXTI_TABLE: path, $COMPLETE: expr) => {
+        #[no_mangle]
+        #[allow(non_snake_case)]
+        extern "C" fn $INTERRUPT() {
+            // Assert that provided types are valid
+            let claim: fn() -> u16 = $CLAIM;
+            let exti_table: &'static [unsafe extern "C" fn()] = &$EXTI_TABLE;
+            let complete: fn(u16) = $COMPLETE;
+            
+            // Get pending interrupt number
+            let exti_n: u16 = claim();
+            let i: usize = exti_n as _;
+            if exti_n == 0 {
+                // interrupt number 0 is defined as "no interrupt"
+            } else if i <= exti_table.len() {
+                // execute corresponding callback
+                unsafe { exti_table[i - 1]() };
+            } else {
+                // unknown/erroneous interrupt number
+                $crate::DefaultInterruptHandler();
+            }
+            // mark interrupt number as complete
+            complete(exti_n);
+        }
+    };
+}
