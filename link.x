@@ -4,6 +4,21 @@ PROVIDE(_max_hart_id = 0);
 PROVIDE(_hart_stack_size = 2K);
 PROVIDE(_heap_size = 0);
 
+PROVIDE(InstrAddressMisaligned = ExceptionHandler);
+PROVIDE(InstrAccessFault = ExceptionHandler);
+PROVIDE(IlegalInstr = ExceptionHandler);
+PROVIDE(Breakpoint = ExceptionHandler);
+PROVIDE(LoadAddressMisaligned = ExceptionHandler);
+PROVIDE(LoadAccessFault = ExceptionHandler);
+PROVIDE(StoreAMOAddressMisaligned = ExceptionHandler);
+PROVIDE(StoreAMOAccessFault = ExceptionHandler);
+PROVIDE(EnvUserCall = ExceptionHandler);
+PROVIDE(EnvSupervisorCall = ExceptionHandler);
+PROVIDE(EnvMachineCall = ExceptionHandler);
+PROVIDE(InstrPageFault = ExceptionHandler);
+PROVIDE(LoadPageFault = ExceptionHandler);
+PROVIDE(StoreAMOPageFault = ExceptionHandler);
+
 PROVIDE(UserSoft = DefaultHandler);
 PROVIDE(SupervisorSoft = DefaultHandler);
 PROVIDE(MachineSoft = DefaultHandler);

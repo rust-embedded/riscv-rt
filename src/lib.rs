@@ -464,7 +464,14 @@ pub extern "C" fn start_trap_rust(trap_frame: *const TrapFrame) {
         let cause = xcause::read();
 
         if cause.is_exception() {
-            ExceptionHandler(&*trap_frame)
+            if cause.code() < __EXCEPTIONS.len() {
+                match __EXCEPTIONS[cause.code()] {
+                    Some(handler) => handler(&*trap_frame),
+                    None => ExceptionHandler(&*trap_frame),
+                };
+            } else {
+                ExceptionHandler(&*trap_frame);
+            }
         } else {
             if cause.code() < __INTERRUPTS.len() {
                 let h = &__INTERRUPTS[cause.code()];
@@ -501,6 +508,68 @@ pub fn DefaultInterruptHandler() {
         continue;
     }
 }
+
+/// Standard exception categories.
+#[doc(hidden)]
+#[repr(u32)]
+pub enum Exception {
+    InstrAddressMisaligned = 0,
+    InstrAccessFault = 1,
+    IlegalInstr = 2,
+    Breakpoint = 3,
+    LoadAddressMisaligned = 4,
+    LoadAccessFault = 5,
+    StoreAMOAddressMisaligned = 6,
+    StoreAMOAccessFault = 7,
+    EnvUserCall = 8,
+    EnvSupervisorCall = 9,
+    // Reserved = 10,
+    EnvMachineCall = 11,
+    InstrPageFault = 12,
+    LoadPageFault = 13,
+    // Reserved = 14,
+    StoreAMOPageFault = 15,
+}
+
+pub use self::Exception as exception;
+
+extern "C" {
+    fn InstrAddressMisaligned(trap_frame: &TrapFrame);
+    fn InstrAccessFault(trap_frame: &TrapFrame);
+    fn IlegalInstr(trap_frame: &TrapFrame);
+    fn Breakpoint(trap_frame: &TrapFrame);
+    fn LoadAddressMisaligned(trap_frame: &TrapFrame);
+    fn LoadAccessFault(trap_frame: &TrapFrame);
+    fn StoreAMOAddressMisaligned(trap_frame: &TrapFrame);
+    fn StoreAMOAccessFault(trap_frame: &TrapFrame);
+    fn EnvUserCall(trap_frame: &TrapFrame);
+    fn EnvSupervisorCall(trap_frame: &TrapFrame);
+    fn EnvMachineCall(trap_frame: &TrapFrame);
+    fn InstrPageFault(trap_frame: &TrapFrame);
+    fn LoadPageFault(trap_frame: &TrapFrame);
+    fn StoreAMOPageFault(trap_frame: &TrapFrame);
+}
+
+#[doc(hidden)]
+#[no_mangle]
+pub static __EXCEPTIONS: [Option<unsafe extern "C" fn(&TrapFrame)>; 16] = [
+    Some(InstrAddressMisaligned),
+    Some(InstrAccessFault),
+    Some(IlegalInstr),
+    Some(Breakpoint),
+    Some(LoadAddressMisaligned),
+    Some(LoadAccessFault),
+    Some(StoreAMOAddressMisaligned),
+    Some(StoreAMOAccessFault),
+    Some(EnvUserCall),
+    Some(EnvSupervisorCall),
+    None, // 10 is reserved
+    Some(EnvMachineCall),
+    Some(InstrPageFault),
+    Some(LoadPageFault),
+    None, // 14 is reserved
+    Some(StoreAMOPageFault),
+];
 
 /* Interrupts */
 #[doc(hidden)]

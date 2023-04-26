@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 
 ## [Unreleased]
 
+## Added
+
+- Standard exceptions enum 
+- __EXCEPTIONS array for dedicated handlers for each exception type.
+
 ## [v0.11.0] - 2023-01-18
 
 ### Changed
