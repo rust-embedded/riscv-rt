@@ -64,8 +64,11 @@ _abs_start:
     // a0..a2 (x10..x12) skipped
     li  x13, 0
     li  x14, 0
-    li  x15, 0
-    li  x16, 0
+    li  x15, 0",
+
+    // Since RV{32, 64}E only has registers x0 to x15, do not reset registers x16 .. x31 on RV{32, 64}E platforms.
+    #[cfg(not(target_feature = "e"))]
+    "li  x16, 0
     li  x17, 0
     li  x18, 0
     li  x19, 0
@@ -80,9 +83,9 @@ _abs_start:
     li  x28, 0
     li  x29, 0
     li  x30, 0
-    li  x31, 0
+    li  x31, 0",
 
-    .option push
+    ".option push
     .option norelax
     la gp, __global_pointer$
     .option pop",
