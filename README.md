@@ -6,6 +6,11 @@
 
 > Minimal runtime / startup for RISC-V CPU's.
 
+**This crate has moved to the [`riscv`] repository, and this repository is
+archived. Please direct issues and pull requests to the new repository.**
+
+[`riscv`]: https://github.com/rust-embedded/riscv
+
 This project is developed and maintained by the [RISC-V team][team].
 
 ## [Documentation](https://docs.rs/crate/riscv-rt)
